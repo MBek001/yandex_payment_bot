@@ -29,6 +29,9 @@ class Config:
     PROVIDER_CLICK: str = os.getenv("PROVIDER_CLICK")
     DASHBOARD_SECRET: str = os.getenv("DASHBOARD_SECRET")
 
+    PAYMENT_FEE : int = int(os.getenv("PAYMENT_FEE"))
+    PROVIDER_FEE_DEFAULT = 0
+
     # Telegram
     TELEGRAM_ENABLED: bool = env_bool("TELEGRAM_ENABLED", True)
     TELEGRAM_BOT_TOKEN: str = os.getenv("TELEGRAM_BOT_TOKEN")

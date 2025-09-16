@@ -1,6 +1,6 @@
 import requests
 from html import escape
-import json
+from decimal import Decimal, ROUND_HALF_UP
 
 from telegram.constants import ParseMode
 
@@ -36,11 +36,30 @@ def _kv(key: str, val) -> str:
     return f"<b>{escape(str(key))}:</b> {escape(str(val))}"
 
 
+def _format_amount(amount) -> str:
+    """
+    Format Decimal or numeric amount into '20 000.00' style:
+    - space as thousand separator
+    - two decimals
+    """
+    if amount is None:
+        return ""
+    if not isinstance(amount, Decimal):
+        amount = Decimal(str(amount))
+    # Round to 2 decimals
+    amount = amount.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    s = f"{amount:.2f}"  # Decimal supports f-format
+    int_part, frac = s.split(".")
+    int_part_with_sep = format(int(int_part), ",").replace(",", " ")
+    return f"{int_part_with_sep}.{frac}"
+
+
 def notify_payment_success(cfg,
                            *,
                            provider: str,
                            callsign: str,
-                           amount_uzs,
+                           original_amount,
+                           topup_amount,
                            driver_id: str | None,
                            provider_txn_id: str | None) -> None:
     if not getattr(cfg, "TELEGRAM_ENABLED", False):
@@ -54,7 +73,8 @@ def notify_payment_success(cfg,
         "✅ <b>To‘lov qabul qilindi</b>",
         _kv("📝 Provider", provider),
         _kv("🔸 Pazivnoy", callsign),
-        _kv(" 🇺🇿 Summa", f"{amount_uzs} UZS"),
+        _kv("🧾 Haydovchi tashladi", f"{_format_amount(original_amount)} UZS"),
+        _kv("💳 Haydovchiga tashlandi", f"{_format_amount(topup_amount)} UZS"),
     ]
     if provider_txn_id:
         rows.append(_kv("🧾 To'lov IDsi", provider_txn_id))
@@ -89,10 +109,11 @@ def notify_payment_error(cfg,
     if callsign:
         rows.append(_kv("Pazivnoy", callsign))
     if amount_uzs is not None:
-        rows.append(_kv("Summa", f"{amount_uzs} UZS"))
+        rows.append(_kv("Summa", f"{_format_amount(amount_uzs)} UZS"))
     if provider_txn_id:
         rows.append(_kv("To'lov IDsi", provider_txn_id))
     if context:
         rows.append(_kv("Context", context))
-
+    if payload_excerpt:
+        rows.append(_kv("Payload excerpt", payload_excerpt[:500]))
     send_html(bot, chat, "\n".join(rows))
