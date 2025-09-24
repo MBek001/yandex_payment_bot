@@ -1,13 +1,14 @@
-import os
-import re
-from decimal import Decimal, InvalidOperation
+import asyncio
+from decimal import Decimal
 from pyrogram import Client, filters
 
-from database import init_db
+import config
+from config import PARKS
+from parser import parse_amount, parse_callsign, parse_provider_txn_id, is_successful_payment
 from utils import save_payment_and_topup
-from config import config
+from database import init_db
 
-# Initialize the database
+# initialize DB
 init_db()
 
 # Pyrogram configuration
@@ -16,52 +17,72 @@ api_hash = config.APP_SECRET
 app_title = config.APP_TITLE
 app = Client(app_title, api_id=api_id, api_hash=api_hash)
 
-BRO_TAXI = config.BRO_TAXI
-ALLOWED_USERS = config.ALLOWED_USERS
 
-def parse_amount(amount_text: str) -> Decimal:
-    clean = re.sub(r"[^\d,\.]", "", amount_text)
-    clean = clean.replace(",", ".")
+def safe_text(msg):
+    return (msg or "") if isinstance(msg, str) else str(msg)
+
+
+def get_park_by_group_id(group_id: int):
+    """Telegram group_id orqali tegishli parkni topadi"""
+    for park in PARKS.values():
+        if str(group_id) in park.telegram_groups:
+            return park
+    return None
+
+
+@app.on_message(filters.group)
+async def handle_message(client, message):
     try:
-        return Decimal(clean)
-    except InvalidOperation:
-        print(f"⚠️ Decimal error, clean string: {clean!r}")
-        return Decimal("0")
+        text = safe_text(message.text or message.caption or "")
+        chat = message.chat
+        group_id = str(chat.id)
 
-@app.on_message(filters.chat(BRO_TAXI) & filters.user(ALLOWED_USERS))
-async def get_messages(client, message):
-    try:
-        text = message.text or message.caption
-
-        if "✅" not in text or "Успешно оплачен" not in text:
-            print("ℹ️ Bu xabar bekor qilingan yoki muvaffaqiyatsiz, saqlanmaydi")
+        # Parkni topamiz
+        park = get_park_by_group_id(group_id)
+        if not park:
+            print(f"❌ Unknown park for group {group_id}")
             return
 
-        payment_id_match = re.search(r"🧾\s*(\d+)", text)
-        provider_txn_id = payment_id_match.group(1) if payment_id_match else None
+        # To'lov xabari ekanligini tekshirish
+        if not is_successful_payment(text):
+            print("⚠️ Not a successful payment message, skipping.")
+            return
 
-        callsign_match = re.search(r"Id водителя:\s*(\d+)", text)
-        callsign = callsign_match.group(1) if callsign_match else None
+        # Ma'lumotlarni parse qilish
+        provider_txn_id = parse_provider_txn_id(text)
+        callsign = parse_callsign(text)
+        amount = parse_amount(text)
 
-        amount_match = re.search(r"🇺🇿\s*([^\n]+)", text)
-        amount_uzs = parse_amount(amount_match.group(1)) if amount_match else Decimal("0")
+        if not provider_txn_id or not callsign or amount <= Decimal("0"):
+            print(
+                f"⚠️ Missing fields in message from {group_id}: txn={provider_txn_id}, callsign={callsign}, amount={amount}"
+            )
+            return
 
-        if provider_txn_id and callsign and amount_uzs > 0:
+        raw_payload = {
+            "raw_text": text,
+            "group_id": group_id,
+            "group_title": getattr(chat, "title", None),
+        }
+
+        # Asosiy ishlovchi task
+        async def _process():
             ok, payment, msg = save_payment_and_topup(
                 provider="payme",
                 provider_txn_id=provider_txn_id,
                 callsign=callsign,
-                amount_uzs=amount_uzs,
-                raw_payload={"raw_text": text},
+                amount_uzs=amount,
+                raw_payload=raw_payload,
+                park=park,
             )
-            print("💾 Natija:", ok, msg)
-        else:
-            print("⚠️ Xabardan kerakli maydonlarni ajratib bo‘lmadi")
+            print(f"✅ Processed txn {provider_txn_id} for park {park.name}: ok={ok}, msg={msg}")
+
+        asyncio.create_task(_process())
 
     except Exception as e:
-        print("⚠️ Xatolik:", e)
-        print("To‘liq obyekt:", message)
+        print("🔥 Error in handle_message:", e)
+
 
 if __name__ == "__main__":
-    print("📌 Userbot ishga tushyapti...")
+    print("🚀 Bot starting...")
     app.run()
