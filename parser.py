@@ -23,7 +23,11 @@ def parse_amount(text: str) -> Decimal:
         return Decimal("0")
     raw = m.group(1)
     # Remove non-digit except comma/dot
-    clean = re.sub(r"[^\d,\.]", "", raw).replace(",", ".")
+    clean = re.sub(r"[^\d,\.]", "", raw)
+    # Remove thousands separators (comma followed by exactly 3 digits)
+    clean = re.sub(r",(\d{3})", r"\1", clean)
+    # Replace remaining comma (decimal separator) with dot
+    clean = clean.replace(",", ".")
     try:
         return Decimal(clean)
     except (InvalidOperation, ValueError):
