@@ -11,6 +11,7 @@ DRIVER_RE_VARIANTS = [
     re.compile(r"🔸\s*Позывной:\s*([0-9A-Za-z\-]+)", re.IGNORECASE),
     re.compile(r"ID водителя:\s*([0-9A-Za-z\-]+)", re.IGNORECASE),
     re.compile(r"Позывной водителя:\s*([0-9A-Za-z\-]+)", re.IGNORECASE),
+    re.compile(r"➡️\s*Параметры оплаты:\s*([0-9A-Za-z\-]+)", re.IGNORECASE),
 ]
 
 
@@ -54,4 +55,9 @@ def parse_callsign(text: str) -> str | None:
 def is_successful_payment(text: str) -> bool:
     if not text:
         return False
-    return "Успешно оплачен" in text or "Успешно" in text and "оплачен" in text
+    return (
+        "Успешно оплачен" in text
+        or ("Успешно" in text and "оплачен" in text)
+        or "Успешно подтвержден" in text
+        or ("Успешно" in text and "подтвержден" in text)
+    )

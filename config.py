@@ -24,7 +24,7 @@ def parse_list(value: str) -> list[str]:
 # === LOAD PARKS ===
 class Park:
     def __init__(self, name, api_key, clid, park_id, telegram_groups, notification_chat_id,
-                 allowed_users, payment_fee, sticker_success, sticker_error):
+                 allowed_users, payment_fee, sticker_success, sticker_error, provider):
         self.name = name
         self.api_key = api_key
         self.clid = clid
@@ -35,6 +35,7 @@ class Park:
         self.payment_fee = payment_fee
         self.sticker_success = sticker_success
         self.sticker_error = sticker_error
+        self.provider = provider
 
 
 def load_parks_from_env():
@@ -56,6 +57,7 @@ def load_parks_from_env():
             payment_fee=int(os.getenv(f"PARK{idx}_PAYMENT_FEE", 0)),
             sticker_success=os.getenv(f"PARK{idx}_STICKER_SUCCESS", "✅"),
             sticker_error=os.getenv(f"PARK{idx}_STICKER_ERROR", "❌"),
+            provider=os.getenv(f"PARK{idx}_PROVIDER", "payme"),
         )
         idx += 1
 

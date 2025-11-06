@@ -68,7 +68,7 @@ async def handle_message(client, message):
         # Asosiy ishlovchi task
         async def _process():
             ok, payment, msg = save_payment_and_topup(
-                provider="payme",
+                provider=park.provider,
                 provider_txn_id=provider_txn_id,
                 callsign=callsign,
                 amount_uzs=amount,
