@@ -52,7 +52,7 @@ def notify_payment_success(park, *, provider: str, callsign: str, original_amoun
     if not bot or not chat:
         return
     rows = [
-        f"✅ <b>To‘lov qabul qilindi ({park.name})</b>",
+        f"✅ <b>To‘lov qabul qilindi ( #{park.name})</b>",
         _kv("Provider", provider),
         _kv("Pazivnoy", callsign),
         _kv("📥 Qabul qilingan summa", f"{_format_amount(original_amount)} UZS"),
