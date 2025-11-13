@@ -15,7 +15,8 @@ init_db()
 api_id = config.APP_ID
 api_hash = config.APP_SECRET
 app_title = config.APP_TITLE
-app = Client(app_title, api_id=api_id, api_hash=api_hash)
+# Use workdir parameter to explicitly set session file location
+app = Client(app_title, api_id=api_id, api_hash=api_hash, workdir=".")
 
 
 def safe_text(msg):
