@@ -57,7 +57,7 @@ def load_parks_from_env():
             payment_fee=int(os.getenv(f"PARK{idx}_PAYMENT_FEE", 0)),
             sticker_success=os.getenv(f"PARK{idx}_STICKER_SUCCESS", "✅"),
             sticker_error=os.getenv(f"PARK{idx}_STICKER_ERROR", "❌"),
-            provider=os.getenv(f"PARK{idx}_PROVIDER", "payme"),
+            provider=os.getenv(f"PARK{idx}_PROVIDER"),
         )
         idx += 1
 

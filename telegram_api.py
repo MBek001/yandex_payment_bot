@@ -44,21 +44,10 @@ async def handle_message(client, message):
             print(f"❌ Unknown park for group {group_id}")
             return
 
-        # To'lov xabari ekanligini tekshirish
-        if not is_successful_payment(text):
-            print("⚠️ Not a successful payment message, skipping.")
-            return
-
         # Ma'lumotlarni parse qilish
         provider_txn_id = parse_provider_txn_id(text)
         callsign = parse_callsign(text)
         amount = parse_amount(text)
-
-        if not provider_txn_id or not callsign or amount <= Decimal("0"):
-            print(
-                f"⚠️ Missing fields in message from {group_id}: txn={provider_txn_id}, callsign={callsign}, amount={amount}"
-            )
-            return
 
         raw_payload = {
             "raw_text": text,

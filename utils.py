@@ -34,15 +34,8 @@ def _apply_provider_fee(provider: str, amount: Decimal, park) -> Decimal:
 def save_payment_and_topup(provider: str, provider_txn_id: str, callsign: str,
                            amount_uzs: Decimal, raw_payload: dict, park) -> Tuple[bool, dict, str]:
 
-    # determine category id based on provider
-    if provider == "payme":
-        category_id = config.PROVIDER_PAYME
-    elif provider == "click":
-        category_id = config.PROVIDER_CLICK
-    else:
-        category_id = config.PROVIDER_PAYME
+    category_id = _get_category_id(provider, park)
 
-    # 1. Save initial payment (idempotent check inside save_payment)
     ok, payment, msg = save_payment(
         provider=provider,
         provider_txn_id=provider_txn_id,
@@ -90,7 +83,7 @@ def save_payment_and_topup(provider: str, provider_txn_id: str, callsign: str,
 
     ok_topup = False
     try:
-        ok_topup = api.topup_balance(driver_id=driver_id, category_id=category_id, amount=float(topup_amount))
+        ok_topup = api.topup_balance(driver_id=driver_id, category_id=provider, amount=float(topup_amount))
     except Exception:
         ok_topup = False
 
@@ -119,15 +112,36 @@ def save_payment_and_topup(provider: str, provider_txn_id: str, callsign: str,
         try:
             notify_payment_success(
                 park,
-                provider=provider,
+                provider=category_id,
                 callsign=callsign,
                 original_amount=amount_uzs,
                 topup_amount=topup_amount,
                 driver_id=driver_id,
                 provider_txn_id=provider_txn_id,
             )
+            print("sent notif ", category_id)
         except Exception:
             return
 
     return True, payment, "ok"
 
+
+def _get_category_id(provider: str, park) -> str:
+    suffix = (park.name or "").rsplit("_", 1)[-1].lower()
+
+    if suffix == "click":
+        return config.PROVIDER_CLICK
+    if suffix == "payme":
+        return config.PROVIDER_PAYME
+
+    # Agar park.name dan aniqlanmasa, provider parametri bo'yicha
+    if provider == "click":
+        return config.PROVIDER_CLICK
+    if provider == "payme":
+        return config.PROVIDER_PAYME
+
+    # Oxirgi variant: park.provider yoki default PAYME
+    if getattr(park, "provider", None):
+        return park.provider
+
+    return config.PROVIDER_PAYME
