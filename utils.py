@@ -65,7 +65,7 @@ def save_payment_and_topup(provider: str, provider_txn_id: str, callsign: str,
         try:
             notify_payment_error(
                 park,
-                title="Haydovchi topilmadi",
+                title=f"Haydovchi topilmadi #{park.name}",
                 error_msg=f"Haydovchi topilmadi",
                 provider=provider,
                 callsign=callsign,
