@@ -6,7 +6,7 @@ import config
 from config import PARKS
 from parser import parse_amount, parse_callsign, parse_provider_txn_id, is_successful_payment
 from telegram_notification import notify_payment_error
-from utils import save_payment_and_topup
+from utils import save_payment_and_topup, _get_category_id
 from database import init_db
 
 # initialize DB
@@ -49,13 +49,15 @@ async def handle_message(client, message):
         provider_txn_id = parse_provider_txn_id(text)
         callsign = parse_callsign(text)
         amount = parse_amount(text)
+
+        category_id =_get_category_id(park.provider, park)
         if not is_successful_payment(text):
             print(f"⚠️ NOT successful → ignored. Txn={provider_txn_id}")
             notify_payment_error(
                 park,
                 title="To'lov muvaffaqiyatsiz",
                 error_msg="To'lov tasdiqlanmagan yoki bekor qilingan",
-                provider=park.provider,
+                provider=category_id,
                 callsign=callsign,
                 amount_uzs=amount,
                 provider_txn_id=provider_txn_id,
