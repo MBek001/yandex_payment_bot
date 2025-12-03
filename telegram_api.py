@@ -5,6 +5,7 @@ from pyrogram import Client, filters
 import config
 from config import PARKS
 from parser import parse_amount, parse_callsign, parse_provider_txn_id, is_successful_payment
+from telegram_notification import notify_payment_error
 from utils import save_payment_and_topup
 from database import init_db
 
@@ -48,6 +49,21 @@ async def handle_message(client, message):
         provider_txn_id = parse_provider_txn_id(text)
         callsign = parse_callsign(text)
         amount = parse_amount(text)
+        if not is_successful_payment(text):
+            print(f"⚠️ NOT successful → ignored. Txn={provider_txn_id}")
+            notify_payment_error(
+                park,
+                title="To'lov muvaffaqiyatsiz",
+                error_msg="To'lov tasdiqlanmagan yoki bekor qilingan",
+                provider=park.provider,
+                callsign=callsign,
+                amount_uzs=amount,
+                provider_txn_id=provider_txn_id,
+                context="is_successful_payment returned False",
+            )
+            return
+
+
 
         raw_payload = {
             "raw_text": text,
