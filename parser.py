@@ -12,6 +12,7 @@ DRIVER_RE_VARIANTS = [
     re.compile(r"ID водителя:\s*([0-9A-Za-z\-]+)", re.IGNORECASE),
     re.compile(r"Позывной водителя:\s*([0-9A-Za-z\-]+)", re.IGNORECASE),
     re.compile(r"➡️\s*Параметры оплаты:\s*([0-9A-Za-z\-]+)", re.IGNORECASE),
+    re.compile(r"➡️\s*Параметры оплаты:\s*\n\s*🔸\s*([0-9A-Za-z\-]+)", re.IGNORECASE),
 ]
 
 
